@@ -1,7 +1,7 @@
 # LLM Inference Benchmark
 
-[![CI](https://github.com/Emad-Student/llm-inference-benchmark/actions/workflows/ci.yml/badge.svg)](https://github.com/Emad-Student/llm-inference-benchmark/actions/workflows/ci.yml)
-[![LLM Benchmark](https://github.com/Emad-Student/llm-inference-benchmark/actions/workflows/benchmark.yml/badge.svg)](https://github.com/Emad-Student/llm-inference-benchmark/actions/workflows/benchmark.yml)
+[![CI](https://github.com/Emad-Abouelsaad/llm-inference-benchmark/actions/workflows/ci.yml/badge.svg)](https://github.com/Emad-Abouelsaad/llm-inference-benchmark/actions/workflows/ci.yml)
+[![LLM Benchmark](https://github.com/Emad-Abouelsaad/llm-inference-benchmark/actions/workflows/benchmark.yml/badge.svg)](https://github.com/Emad-Abouelsaad/llm-inference-benchmark/actions/workflows/benchmark.yml)
 
 An automated pipeline for benchmarking LLM serving. It runs a large language model inside Docker with
 **OpenVINO Model Server** (CPU) or **vLLM** (GPU), measures **time to first token (TTFT)**,
