@@ -39,13 +39,31 @@ The load is closed-loop: at each concurrency level *C*, exactly *C* requests are
 that continuous batching gives you. Token counts come from the server's `usage` field
 (`stream_options.include_usage`). If a server doesn't send it, the tool falls back to counting streamed chunks.
 
-## Example output (GitHub Actions job summary)
+## Results
+
+TinyLlama 1.1B Chat (INT4, OpenVINO) on a GitHub-hosted runner (AMD EPYC 7763, 4 vCPU, 16 GB RAM, no GPU).
+Each level has 16 requests with up to 128 output tokens.
+([workflow run](https://github.com/Emad-Abouelsaad/llm-inference-benchmark/actions/runs/39513719205))
 
 | Concurrency | Requests (failed) | Output tok/s | Req/s | TTFT p50 (ms) | TTFT p99 (ms) | TPOT p50 (ms) | E2E p50 (ms) |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | 16 (0) | … | … | … | … | … | … |
+| 1 | 16 (0) | 21.5 | 0.17 | 575 | 661 | 42.5 | 5,938 |
+| 2 | 16 (0) | 26.0 | 0.21 | 689 | 1,177 | 71.5 | 9,752 |
+| 4 | 16 (0) | 28.8 | 0.23 | 1,903 | 13,484 | 93.9 | 13,765 |
+| 8 | 16 (0) | 27.1 | 0.22 | 23,312 | 32,699 | 69.3 | 32,328 |
 
-*Run the **LLM Benchmark** workflow once, then paste the real table and the `benchmark.png` chart here.*
+![Throughput and TTFT vs. concurrency](docs/benchmark.png)
+
+**What the numbers show**
+
+- **Batching helps up to 4 concurrent users.** Total throughput rises 34% (21.5 → 28.8 tok/s) because the
+  server decodes several sequences at once.
+- **Then the CPU is saturated.** At 8 users, throughput stops growing, and the extra requests wait in a queue.
+  The median TTFT goes from 0.6 s to 23 s even though the decode speed per token barely changes.
+- **Per-user speed trades off against total throughput.** TPOT more than doubles from 1 to 4 users
+  (42 → 94 ms/token). Each user gets slower output while the server as a whole produces more.
+- On this hardware, about **2 concurrent users** keeps TTFT under ~1 s. That number is what you would use to
+  size the serving capacity.
 
 ## Project layout
 
