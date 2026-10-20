@@ -1,0 +1,78 @@
+# Local stack.
+#   CPU (OpenVINO):  docker compose --profile openvino up -d
+#   GPU (vLLM):      docker compose --profile vllm up -d
+# Then run the benchmark from the host (see README) or with:
+#   docker compose run --rm bench run --base-url http://ovms:8000/v3 --model tinyllama
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: bench
+      POSTGRES_PASSWORD: bench
+      POSTGRES_DB: bench
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bench -d bench"]
+      interval: 5s
+      retries: 10
+
+  # OpenVINO Model Server: pulls a pre-converted INT4 model from Hugging Face and serves an
+  # OpenAI-compatible API on /v3. Runs on any x86 CPU.
+  ovms:
+    profiles: ["openvino"]
+    image: ${OVMS_IMAGE:-openvino/model_server:2026.3}
+    user: "${UID:-0}:${GID:-0}"
+    command:
+      - --source_model=${OVMS_SOURCE_MODEL:-OpenVINO/TinyLlama-1.1B-Chat-v1.0-int4-ov}
+      - --model_repository_path=/models
+      - --model_name=${MODEL_NAME:-tinyllama}
+      - --task=text_generation
+      - --target_device=CPU
+      - --rest_port=8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/models:rw
+
+  # vLLM: needs an NVIDIA GPU + NVIDIA Container Toolkit. OpenAI-compatible API on /v1.
+  vllm:
+    profiles: ["vllm"]
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.32.0}
+    command:
+      - --model=${VLLM_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}
+      - --served-model-name=${MODEL_NAME:-tinyllama}
+      - --max-model-len=4096
+      - --gpu-memory-utilization=0.85
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+    ipc: host
+    ports:
+      - "8000:8000"
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  bench:
+    profiles: ["bench"]
+    build: .
+    environment:
+      DATABASE_URL: postgresql://bench:bench@postgres:5432/bench
+    volumes:
+      - ./results:/app/results
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  hf-cache:

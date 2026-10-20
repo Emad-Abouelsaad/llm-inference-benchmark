@@ -1,0 +1,16 @@
+[project]
+name = "llmbench"
+version = "0.1.0"
+description = "Benchmark LLM inference servers (TTFT, TPOT, throughput) and store results in PostgreSQL"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
